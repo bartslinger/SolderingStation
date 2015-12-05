@@ -27,7 +27,7 @@
 
 //V1.5
 #define dc   	9		// 8
-#define rst  	7		// 9 
+#define rst  	A6		// 9 
 
 /*
 //V1.4
@@ -66,17 +66,16 @@ int soll_temp = 300;
 boolean standby_act = false;
 
 void setup(void) {
-	
 	pinMode(BLpin, OUTPUT);
 	digitalWrite(BLpin, LOW);
-	
 	pinMode(STANDBYin, INPUT_PULLUP);
 	
 	pinMode(PWMpin, OUTPUT);
 	digitalWrite(PWMpin, LOW);
 	setPwmFrequency(PWMpin, PWM_DIV);
 	digitalWrite(PWMpin, LOW);
-	
+
+  //delay(1000);
 	tft.initR(INITR_BLACKTAB);
 	SPI.setClockDivider(SPI_CLOCK_DIV4);  // 4MHz
 	
@@ -166,7 +165,7 @@ void loop() {
 	
 	int actual_temperature = getTemperature();
 	soll_temp = map(analogRead(POTI), 0, 1024, 0, MAX_POTI);
-	//soll_temp = 350; // 350 graden
+	//soll_temp = 0; // 350 graden
 	
 	//TODO: Put in Funktion
 	tft.setCursor(2,55);
