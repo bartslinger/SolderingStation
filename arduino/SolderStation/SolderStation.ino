@@ -27,7 +27,7 @@
 
 //V1.5
 #define dc   	9		// 8
-#define rst  	A6		// 9 
+#define rst  	0		// 9 
 
 /*
 //V1.4
@@ -66,7 +66,12 @@ int soll_temp = 300;
 boolean standby_act = false;
 
 void setup(void) {
-	pinMode(BLpin, OUTPUT);
+  pinMode(A6, OUTPUT);
+  digitalWrite(A6, LOW);
+  delay(10);
+  digitalWrite(A6, HIGH);
+  delay(10);
+	pinMode(BLpin, HIGH);
 	digitalWrite(BLpin, LOW);
 	pinMode(STANDBYin, INPUT_PULLUP);
 	
@@ -75,10 +80,9 @@ void setup(void) {
 	setPwmFrequency(PWMpin, PWM_DIV);
 	digitalWrite(PWMpin, LOW);
 
-  //delay(1000);
 	tft.initR(INITR_BLACKTAB);
-	SPI.setClockDivider(SPI_CLOCK_DIV4);  // 4MHz
-	
+	SPI.setClockDivider(SPI_CLOCK_DIV16);  // 1MHz
+	tft.initR(INITR_BLACKTAB);
 	
 	tft.setRotation(0);	// 0 - Portrait, 1 - Lanscape
 	tft.fillScreen(ST7735_BLACK);
