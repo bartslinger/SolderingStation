@@ -94,8 +94,8 @@ void setup(void) {
 	tft.drawBitmap(2,1,stationLOGO1,124,47,ST7735_GREY);
 	
 	tft.drawBitmap(3,3,stationLOGO1,124,47,ST7735_YELLOW);		
-	tft.drawBitmap(3,3,stationLOGO2,124,47,Color565(254,147,52));	
-	tft.drawBitmap(3,3,stationLOGO3,124,47,Color565(255,78,0));
+	tft.drawBitmap(3,3,stationLOGO2,124,47,tft.Color565(254,147,52));	
+	tft.drawBitmap(3,3,stationLOGO3,124,47,tft.Color565(255,78,0));
 	
 	//BAcklight on
 	digitalWrite(BLpin, HIGH);
@@ -277,7 +277,7 @@ void writeHEATING(int tempSOLL, int tempVAL, int pwmVAL){
 		
 		int tempDIV = round(float(tempSOLL - tempVAL)*8.5);
 		tempDIV = tempDIV > 254 ? tempDIV = 254 : tempDIV < 0 ? tempDIV = 0 : tempDIV;
-		tft.setTextColor(Color565(tempDIV, 255-tempDIV, 0));
+		tft.setTextColor(tft.Color565(tempDIV, 255-tempDIV, 0));
 		if (standby_act)
 			tft.setTextColor(ST7735_CYAN);
 		tft.print(tempVAL);
