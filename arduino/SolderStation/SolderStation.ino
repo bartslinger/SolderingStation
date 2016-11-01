@@ -18,7 +18,7 @@
 
 
 #define VERSION "1.5"		//Version der Steuerung
-#define INTRO
+//#define INTRO
 
 #define sclk 	13		// Don't change
 #define mosi 	11		// Don't change
@@ -37,7 +37,7 @@
 
 #define STANDBYin A4
 #define POTI   	A5
-#define TEMPin 	A7
+#define TEMPin 	A6
 #define PWMpin 	3
 #define BLpin		5
 
@@ -65,11 +65,15 @@ int pwm = 0; //pwm Out Val 0.. 255
 int soll_temp = 300;
 boolean standby_act = false;
 
+int bat_meas = 1000;
+
 void setup(void) {
-  pinMode(A6, OUTPUT);
-  digitalWrite(A6, LOW);
-  delay(10);
-  digitalWrite(A6, HIGH);
+  Serial.begin(115200);
+  pinMode(TEMPin, INPUT);
+  //pinMode(A6, OUTPUT);
+  //digitalWrite(A6, LOW);
+  //delay(10);
+  //digitalWrite(A6, HIGH);
   delay(10);
 	pinMode(BLpin, HIGH);
 	digitalWrite(BLpin, LOW);
@@ -143,7 +147,7 @@ void setup(void) {
 	tft.print("");
 	
 	tft.setTextSize(2);
-	tft.setCursor(117,47);
+	tft.setCursor(115,47);
 	tft.print("o");
 	
 	tft.setTextSize(1);
@@ -151,7 +155,7 @@ void setup(void) {
 	tft.print("doel");
 	
 	tft.setTextSize(2);
-	tft.setCursor(117,92);
+	tft.setCursor(115,92);
 	tft.print("o");
 	
 	tft.setCursor(80,144);
@@ -160,6 +164,9 @@ void setup(void) {
 	tft.setTextSize(1);
 	tft.setCursor(1,151);		//60
 	tft.print("pwm");
+
+  tft.setCursor(57, 151);
+  tft.print("bat");
 	
 	tft.setTextSize(2);
 	
@@ -228,7 +235,7 @@ int getTemperature()
   delay(DELAY_MEASURE);			//wait for some time (to get low pass filter in steady state)
   int adcValue = analogRead(TEMPin); // read the input on analog pin 7:
   Serial.print("ADC Value ");
-  Serial.print(adcValue);
+  Serial.println(adcValue);
   analogWrite(PWMpin, pwm);	//switch heater back to last value
   return round(((float) adcValue)*ADC_TO_TEMP_GAIN+ADC_TO_TEMP_OFFSET); //apply linear conversion to actual temperature
 }
@@ -249,7 +256,7 @@ void writeHEATING(int tempSOLL, int tempVAL, int pwmVAL){
 	
 	tft.setTextSize(5);
 	if (tempVAL_OLD != tempVAL){
-		tft.setCursor(30,57);
+		tft.setCursor(28,57);
 		tft.setTextColor(ST7735_BLACK);
 		//tft.print(tempSOLL_OLD);
 		//erste Stelle unterschiedlich
@@ -267,7 +274,7 @@ void writeHEATING(int tempSOLL, int tempVAL, int pwmVAL){
 		if ( (tempVAL_OLD%10) != (tempVAL%10) )
 			tft.print(tempVAL_OLD%10 );
 		
-		tft.setCursor(30,57);
+		tft.setCursor(28,57);
 		tft.setTextColor(ST7735_WHITE);
 		
 		if (tempVAL < 100)
@@ -287,7 +294,7 @@ void writeHEATING(int tempSOLL, int tempVAL, int pwmVAL){
 	
 	//if (tempSOLL_OLD != tempSOLL){
 	if ((tempSOLL_OLD+d_tempSOLL < tempSOLL) || (tempSOLL_OLD-d_tempSOLL > tempSOLL)){
-		tft.setCursor(30,102);
+		tft.setCursor(28,102);
 		tft.setTextColor(ST7735_BLACK);
 		//tft.print(tempSOLL_OLD);
 		//erste Stelle unterschiedlich
@@ -306,7 +313,7 @@ void writeHEATING(int tempSOLL, int tempVAL, int pwmVAL){
 			tft.print(tempSOLL_OLD%10 );
 		
 		//Neuen Wert in Weiß schreiben
-		tft.setCursor(30,102);
+		tft.setCursor(28,102);
 		tft.setTextColor(ST7735_WHITE);
 		if (tempSOLL < 100)
 			tft.print(" ");
@@ -321,7 +328,7 @@ void writeHEATING(int tempSOLL, int tempVAL, int pwmVAL){
 	
 	tft.setTextSize(2);
 	if (pwmVAL_OLD != pwmVAL){
-		tft.setCursor(80,144);
+		tft.setCursor(15,144);
 		tft.setTextColor(ST7735_BLACK);
 		//tft.print(tempSOLL_OLD);
 		//erste stelle Unterscheidlich
@@ -339,7 +346,7 @@ void writeHEATING(int tempSOLL, int tempVAL, int pwmVAL){
 		if ( (pwmVAL_OLD%10) != (pwmVAL%10) )
 			tft.print(pwmVAL_OLD%10 );
 		
-		tft.setCursor(80,144);
+		tft.setCursor(15,144);
 		tft.setTextColor(ST7735_WHITE);
 		if (pwmVAL < 100)
 			tft.print(" ");
@@ -350,9 +357,44 @@ void writeHEATING(int tempSOLL, int tempVAL, int pwmVAL){
 		pwmVAL_OLD = pwmVAL;
 		
 	}
-	
+
+  static int PREV_VOLTAGE = 10;
+  static int PREV_VDEC = 3;
+
+  int voltage = get_voltage();
+  int decimal = get_voltage_decimal();
+  tft.setTextSize(2);
+  if (PREV_VOLTAGE != voltage) {
+     tft.setCursor(79, 144);
+     tft.setTextColor(ST7735_BLACK);
+     if (PREV_VOLTAGE < 10) {
+        tft.print(" ");
+     }
+     tft.print(PREV_VOLTAGE);
+     tft.setTextColor(ST7735_WHITE);
+     tft.setCursor(79, 144);
+     if (voltage < 10) {
+        tft.print(" ");
+     }
+     tft.print(voltage);
+  }
+  tft.print(".");
+  if (PREV_VDEC != decimal) {
+      
+      tft.print(decimal);
+  }
+  PREV_VOLTAGE = voltage;
+  PREV_VDEC = decimal;
+   
 }
 
+int get_voltage_decimal() {
+  return 4;
+}
+
+int get_voltage() {
+  return 12;
+}
 
 
 
