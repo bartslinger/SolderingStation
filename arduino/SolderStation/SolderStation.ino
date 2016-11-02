@@ -64,6 +64,7 @@ Adafruit_ST7735 tft = Adafruit_ST7735(cs_tft, dc, rst);  // Invoke custom librar
 int pwm = 0; //pwm Out Val 0.. 255
 int soll_temp = 300;
 boolean standby_act = false;
+boolean override_nopower = false;
 
 int bat_meas = 1000;
 int bat_voltage = 0;
@@ -179,6 +180,9 @@ void loop() {
 	
 	int actual_temperature = getTemperature();
 	soll_temp = map(analogRead(POTI), 0, 1024, 0, MAX_POTI);
+  if (override_nopower) {
+    soll_temp = 0;
+  }
 	//soll_temp = 0; // 350 graden
 
   //battery measurement
@@ -188,7 +192,7 @@ void loop() {
     
 	//TODO: Put in Funktion
 	tft.setCursor(2,55);
-	if (digitalRead(STANDBYin) == true)
+	if (!standby_act)
 		tft.setTextColor(ST7735_BLACK);
 	else
 		tft.setTextColor(ST7735_WHITE);
@@ -197,12 +201,16 @@ void loop() {
 	//
 	
 	int soll_temp_tmp = soll_temp;
-	
+
+  /*
 	if (digitalRead(STANDBYin) == false)
 		standby_act = true;
 	else
 		standby_act = false;
-	
+	*/
+
+  update_standby_status();
+  
 	if (standby_act && (soll_temp >= STANDBY_TEMP ))
 		soll_temp_tmp = STANDBY_TEMP;
 	
@@ -249,6 +257,62 @@ int getTemperature()
   return round(((float) adcValue)*ADC_TO_TEMP_GAIN+ADC_TO_TEMP_OFFSET); //apply linear conversion to actual temperature
 }
 
+enum button_states {
+  BUTTON_UNPUSHED,
+  BUTTON_PUSHED_SHORT,
+  BUTTON_PUSHED_LONG,
+  BUTTON_RELEASED
+} button_state = BUTTON_UNPUSHED;
+
+void update_standby_status() {
+  /*
+  if (digitalRead(STANDBYin) == false)
+    standby_act = true;
+  else
+    standby_act = false;
+  */
+  
+  static unsigned long push_time = 0;
+  
+  switch(button_state) {
+    case BUTTON_UNPUSHED:
+      if (!digitalRead(STANDBYin)) {
+        button_state = BUTTON_PUSHED_SHORT;
+        push_time = millis();
+      }
+      break;
+
+    case BUTTON_PUSHED_SHORT:
+      // wait at least 10 ms
+      if (millis() - push_time < 10) {
+        break;
+      }
+      
+      if (digitalRead(STANDBYin)) { // released
+        // EVENT
+        // ACTION = toggle standby
+        if (!override_nopower) {
+          standby_act = !standby_act;
+        }
+        button_state = BUTTON_UNPUSHED;
+      }
+      if (millis() - push_time > 1000) {
+        button_state = BUTTON_PUSHED_LONG;
+        // long push is event with action:
+        standby_act = false;
+        override_nopower = !override_nopower;
+      }
+      break;
+
+    case BUTTON_PUSHED_LONG:
+      // just wait for the release
+      if (digitalRead(STANDBYin)) { // released button
+        button_state = BUTTON_UNPUSHED;
+      }
+      break;
+  }
+  
+}
 
 
 
