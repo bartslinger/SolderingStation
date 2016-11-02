@@ -66,6 +66,9 @@ int soll_temp = 300;
 boolean standby_act = false;
 
 int bat_meas = 1000;
+int bat_voltage = 0;
+int bat_voltage_decimal = 0;
+String display_voltage = "0.0";
 
 void setup(void) {
   Serial.begin(115200);
@@ -177,7 +180,12 @@ void loop() {
 	int actual_temperature = getTemperature();
 	soll_temp = map(analogRead(POTI), 0, 1024, 0, MAX_POTI);
 	//soll_temp = 0; // 350 graden
-	
+
+  //battery measurement
+  // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 12.9V): // Resistors: GND - 300K - A0 - 470K - 5V
+  float voltage = bat_meas * (12.9 / 1023.0);
+  display_voltage = String(voltage, 1);
+    
 	//TODO: Put in Funktion
 	tft.setCursor(2,55);
 	if (digitalRead(STANDBYin) == true)
@@ -234,8 +242,9 @@ int getTemperature()
   analogWrite(PWMpin, 0);		//switch off heater
   delay(DELAY_MEASURE);			//wait for some time (to get low pass filter in steady state)
   int adcValue = analogRead(TEMPin); // read the input on analog pin 7:
-  Serial.print("ADC Value ");
-  Serial.println(adcValue);
+  //Serial.print("ADC Value ");
+  //Serial.println(adcValue);
+  bat_meas = analogRead(A0);
   analogWrite(PWMpin, pwm);	//switch heater back to last value
   return round(((float) adcValue)*ADC_TO_TEMP_GAIN+ADC_TO_TEMP_OFFSET); //apply linear conversion to actual temperature
 }
@@ -358,33 +367,24 @@ void writeHEATING(int tempSOLL, int tempVAL, int pwmVAL){
 		
 	}
 
-  static int PREV_VOLTAGE = 10;
-  static int PREV_VDEC = 3;
-
-  int voltage = get_voltage();
-  int decimal = get_voltage_decimal();
+  static String prev_voltage = "0.0";
+  
   tft.setTextSize(2);
-  if (PREV_VOLTAGE != voltage) {
+  if (!display_voltage.equals(prev_voltage)) {
      tft.setCursor(79, 144);
      tft.setTextColor(ST7735_BLACK);
-     if (PREV_VOLTAGE < 10) {
-        tft.print(" ");
+     if (prev_voltage.length() < 4) {
+      tft.print(" ");
      }
-     tft.print(PREV_VOLTAGE);
-     tft.setTextColor(ST7735_WHITE);
+     tft.print(prev_voltage);
      tft.setCursor(79, 144);
-     if (voltage < 10) {
-        tft.print(" ");
+     tft.setTextColor(ST7735_WHITE);
+     if (display_voltage.length() < 4) {
+      tft.print(" ");
      }
-     tft.print(voltage);
+     tft.print(display_voltage);
   }
-  tft.print(".");
-  if (PREV_VDEC != decimal) {
-      
-      tft.print(decimal);
-  }
-  PREV_VOLTAGE = voltage;
-  PREV_VDEC = decimal;
+  prev_voltage = display_voltage;
    
 }
 
@@ -393,6 +393,8 @@ int get_voltage_decimal() {
 }
 
 int get_voltage() {
+  // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 12.9V): // Resistors: GND - 300K - A0 - 470K - 5V
+  float voltage = bat_meas * (12.9 / 1023.0);
   return 12;
 }
 
